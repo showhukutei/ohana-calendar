@@ -32,7 +32,15 @@ function App() {
   
   const [familyMembers, setFamilyMembers] = useState(() => {
     const saved = localStorage.getItem('ohana-family');
-    return saved ? JSON.parse(saved) : INITIAL_FAMILY_MEMBERS;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map((m, i) => ({ ...m, id: m.id || `legacy_${i}`, icon: m.icon || '👤' }));
+    }
+    return INITIAL_FAMILY_MEMBERS;
+  });
+
+  const [familyMemo, setFamilyMemo] = useState(() => {
+    return localStorage.getItem('ohana-memo') || '週末はキャンプの準備を忘れずに！';
   });
 
   const [events, setEvents] = useState(() => {
@@ -46,6 +54,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ohana-family', JSON.stringify(familyMembers));
   }, [familyMembers]);
+
+  useEffect(() => {
+    localStorage.setItem('ohana-memo', familyMemo);
+  }, [familyMemo]);
 
   useEffect(() => {
     localStorage.setItem('ohana-events', JSON.stringify(events));
@@ -158,7 +170,7 @@ function App() {
           
           <section className="family-memo glass-card">
             <h3><Heart size={16} /> 家族メモ</h3>
-            <p className="memo-text">週末はキャンプの準備を忘れずに！</p>
+            <p className="memo-text" style={{ whiteSpace: 'pre-wrap' }}>{familyMemo}</p>
           </section>
         </aside>
 
@@ -320,55 +332,70 @@ function App() {
           <Modal onClose={() => setShowSettingsModal(false)}>
             <div className="settings-form">
               <h3><Settings size={22}/> 家族設定</h3>
-              <div className="settings-members">
-                {familyMembers.map(m => (
-                  <div key={m.id} className="settings-member-row">
-                     <div className="settings-member-preview" style={{ backgroundColor: m.color }}>{m.icon}</div>
-                     <input 
-                       className="icon-input"
-                       type="text" 
-                       maxLength="2"
-                       value={m.icon} 
-                       onChange={(e) => {
-                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, icon: e.target.value } : fm);
-                         setFamilyMembers(newMembers);
-                       }} 
-                     />
-                     <input 
-                       type="text" 
-                       className="name-input"
-                       value={m.name} 
-                       onChange={(e) => {
-                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, name: e.target.value } : fm);
-                         setFamilyMembers(newMembers);
-                       }} 
-                     />
-                     <input 
-                       type="color" 
-                       className="color-input"
-                       value={m.color} 
-                       onChange={(e) => {
-                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, color: e.target.value } : fm);
-                         setFamilyMembers(newMembers);
-                       }} 
-                     />
-                     {m.id !== 'all' && (
-                       <button className="del-btn" onClick={() => setFamilyMembers(familyMembers.filter(fm => fm.id !== m.id))}>
-                         <Trash2 size={18}/>
-                       </button>
-                     )}
-                  </div>
-                ))}
+              
+              <div className="settings-section">
+                <label className="settings-label">家族メモ</label>
+                <textarea 
+                  className="memo-input" 
+                  value={familyMemo} 
+                  onChange={e => setFamilyMemo(e.target.value)} 
+                  rows={2}
+                  placeholder="家族への伝言などを書き込みましょう"
+                />
               </div>
-              <button 
-                className="add-member-btn" 
-                onClick={() => {
-                  const newId = `member_${Date.now()}`;
-                  setFamilyMembers([...familyMembers, { id: newId, name: '新規', color: '#dddddd', icon: '❓' }]);
-                }}
-              >
-                <Plus size={18}/> メンバー追加
-              </button>
+
+              <div className="settings-section">
+                <label className="settings-label">メンバー設定</label>
+                <div className="settings-members">
+                  {familyMembers.map(m => (
+                    <div key={m.id} className="settings-member-row">
+                       <div className="settings-member-preview" style={{ backgroundColor: m.color }}>{m.icon || ' '}</div>
+                       <input 
+                         className="icon-input"
+                         type="text" 
+                         maxLength="2"
+                         value={m.icon || ''} 
+                         onChange={(e) => {
+                           const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, icon: e.target.value } : fm);
+                           setFamilyMembers(newMembers);
+                         }} 
+                       />
+                       <input 
+                         type="text" 
+                         className="name-input"
+                         value={m.name || ''} 
+                         onChange={(e) => {
+                           const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, name: e.target.value } : fm);
+                           setFamilyMembers(newMembers);
+                         }} 
+                       />
+                       <input 
+                         type="color" 
+                         className="color-input"
+                         value={m.color || '#000000'} 
+                         onChange={(e) => {
+                           const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, color: e.target.value } : fm);
+                           setFamilyMembers(newMembers);
+                         }} 
+                       />
+                       {m.id !== 'all' && (
+                         <button className="del-btn" onClick={() => setFamilyMembers(familyMembers.filter(fm => fm.id !== m.id))}>
+                           <Trash2 size={18}/>
+                         </button>
+                       )}
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  className="add-member-btn" 
+                  onClick={() => {
+                    const newId = `member_${Date.now()}`;
+                    setFamilyMembers([...familyMembers, { id: newId, name: '新規', color: '#dddddd', icon: '❓' }]);
+                  }}
+                >
+                  <Plus size={18}/> メンバー追加
+                </button>
+              </div>
               <button className="submit-btn" onClick={() => setShowSettingsModal(false)}>完了</button>
             </div>
           </Modal>

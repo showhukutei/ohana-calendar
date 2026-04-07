@@ -334,6 +334,28 @@ body {
   gap: 1.5rem;
 }
 
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-label {
+  font-weight: 800;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.memo-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 1rem;
+  border: 1px solid #ddd;
+  font-family: inherit;
+  resize: vertical;
+  font-size: 0.95rem;
+}
+
 .settings-form h3 {
   display: flex;
   align-items: center;
