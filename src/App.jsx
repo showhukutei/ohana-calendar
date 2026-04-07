@@ -9,8 +9,9 @@ const FAMILY_MEMBERS = [
   { name: '全員', color: '#7d7d7d' },
   { name: 'パパ', color: '#4fc3f7' },
   { name: 'ママ', color: '#f06292' },
-  { name: '長男', color: '#81c784' },
-  { name: '次女', color: '#ffb74d' },
+  { name: '幸', color: '#81c784' },
+  { name: '希', color: '#ffb74d' },
+  { name: '晃', color: '#9575cd' },
 ];
 
 function App() {
@@ -22,9 +23,9 @@ function App() {
   const [isScanning, setIsScanning] = useState(false);
   
   const [events, setEvents] = useState([
-    { id: 1, date: new Date(2026, 3, 10), title: '春の運動会', color: '#81c784', family: '長男', type: '学校行事' },
+    { id: 1, date: new Date(2026, 3, 10), title: '春の運動会', color: '#81c784', family: '幸', type: '学校行事' },
     { id: 2, date: new Date(2026, 3, 15), title: '進路面談', color: '#f06292', family: 'ママ', type: '面談' },
-    { id: 3, date: new Date(2026, 3, 22), title: 'ピアノコンクール', color: '#ffb74d', family: '次女', type: '習い事' },
+    { id: 3, date: new Date(2026, 3, 22), title: 'ピアノコンクール', color: '#ffb74d', family: '希', type: '習い事' },
     { id: 4, date: new Date(2026, 3, 5), title: '家族会議', color: '#ff8a80', family: '全員', type: '家庭' },
   ]);
 
@@ -46,7 +47,7 @@ function App() {
         date: new Date(2026, 3, 28),
         title: '（自動抽出）給食なし・午前授業',
         color: '#81c784',
-        family: '長男',
+        family: '幸',
         type: '学校プリント'
       };
       setEvents(prev => [...prev, newEvent]);
