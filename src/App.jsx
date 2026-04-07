@@ -41,9 +41,17 @@ function App() {
   const [events, setEvents] = useState(() => {
     const saved = localStorage.getItem('ohana-events');
     if (saved) {
-      return JSON.parse(saved).map(e => ({ ...e, date: new Date(e.date) }));
+      return JSON.parse(saved).map(e => ({ 
+        ...e, 
+        date: new Date(e.date),
+        family: Array.isArray(e.family) ? e.family : [e.family] 
+      }));
     }
-    return INITIAL_EVENTS.map(e => ({ ...e, date: new Date(e.date) }));
+    return INITIAL_EVENTS.map(e => ({ 
+      ...e, 
+      date: new Date(e.date),
+      family: Array.isArray(e.family) ? e.family : [e.family] 
+    }));
   });
 
   useEffect(() => {
@@ -91,7 +99,10 @@ function App() {
 
   const filteredEvents = selectedMember === '全員' 
     ? events 
-    : events.filter(e => e.family === selectedMember || e.family === '全員');
+    : events.filter(e => {
+        const families = Array.isArray(e.family) ? e.family : [e.family];
+        return families.includes(selectedMember) || families.includes('全員');
+      });
 
   return (
     <div className="app-container">
@@ -146,10 +157,14 @@ function App() {
                     </div>
                     <div className="weekly-events">
                       {dayEvents.length > 0 ? dayEvents.map(e => {
-                         const member = familyMembers.find(m => m.name === e.family) || familyMembers[0];
+                         const eventFamilies = Array.isArray(e.family) ? e.family : [e.family];
+                         const members = eventFamilies.map(fname => familyMembers.find(m => m.name === fname)).filter(Boolean);
+                         const primaryColor = members.length > 0 ? members[0].color : e.color;
                          return (
-                           <div key={e.id} className="weekly-event-item" style={{ borderLeftColor: e.color }} onClick={() => setShowEventDetail(e)}>
-                             <span className="we-icon">{member?.icon || '📅'}</span>
+                           <div key={e.id} className="weekly-event-item" style={{ borderLeftColor: primaryColor }} onClick={() => setShowEventDetail(e)}>
+                             <span className="we-icon">
+                               {members.length > 0 ? members.map((m, idx) => <span key={idx}>{m.icon}</span>) : '📅'}
+                             </span>
                              <span className="we-title">{e.title}</span>
                            </div>
                          );
@@ -197,20 +212,22 @@ function App() {
                  <span className="day-number">{format(day, 'd')}</span>
                  <div className="day-events">
                    {filteredEvents.filter(e => isSameDay(e.date, day)).map(e => {
-                     const member = familyMembers.find(m => m.name === e.family) || familyMembers[0];
+                     const eventFamilies = Array.isArray(e.family) ? e.family : [e.family];
+                     const members = eventFamilies.map(fname => familyMembers.find(m => m.name === fname)).filter(Boolean);
+                     const primaryColor = members.length > 0 ? members[0].color : e.color;
                      return (
                        <motion.div 
                          layoutId={`event-${e.id}`}
                          whileHover={{ x: 3 }}
                          key={e.id} 
                          className="event-pill" 
-                         style={{ backgroundColor: e.color }}
+                         style={{ backgroundColor: primaryColor }}
                          onClick={(ev) => {
                             ev.stopPropagation();
                             setShowEventDetail(e);
                          }}
                        >
-                         {member && member.icon && <span style={{marginRight: '4px'}}>{member.icon}</span>}
+                         {members.length > 0 && <span style={{marginRight: '4px'}}>{members.map((m, idx) => <span key={idx}>{m.icon}</span>)}</span>}
                          <span className="pill-title">{e.title}</span>
                        </motion.div>
                      );
@@ -301,7 +318,16 @@ function App() {
                 </div>
                 <div className="detail-item">
                    <span className="label">担当</span>
-                   <span className="member-pill" style={{ backgroundColor: showEventDetail.color }}>{showEventDetail.family}</span>
+                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                     {(Array.isArray(showEventDetail.family) ? showEventDetail.family : [showEventDetail.family]).map((fname, i) => {
+                       const familyMember = familyMembers.find(m => m.name === fname);
+                       return (
+                         <span key={i} className="member-pill" style={{ backgroundColor: familyMember ? familyMember.color : showEventDetail.color }}>
+                           {familyMember?.icon} {fname}
+                         </span>
+                       );
+                     })}
+                   </div>
                 </div>
               </div>
               <div className="detail-actions">
@@ -424,17 +450,18 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
       return format(new Date(), 'yyyy-MM-dd');
     }
   });
-  const [family, setFamily] = useState('全員');
+  const [families, setFamilies] = useState([]);
 
   const handleSubmit = () => {
     if (!title) return;
-    const member = familyMembers.find(m => m.name === family) || familyMembers[0];
+    const selectedFamilies = families.length > 0 ? families.filter(f => f !== '全員') : ['全員'];
+    const member = familyMembers.find(m => m.name === selectedFamilies[0]) || familyMembers[0];
     onSave({
       id: Date.now(),
       date: new Date(date),
       title: title,
       color: member.color,
-      family: member.name,
+      family: selectedFamilies,
       type: '手動追加'
     });
   };
@@ -456,11 +483,11 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
           {familyMembers.filter(m => m.name !== '全員').map(m => (
             <button 
               key={m.id || m.name} 
-              className={`member-btn ${family === m.name ? 'active' : ''}`}
+              className={`member-btn ${families.includes(m.name) ? 'active' : ''}`}
               style={{
-                backgroundColor: family === m.name ? m.color : '#f0f0f0',
-                color: family === m.name ? '#fff' : '#666',
-                border: `2px solid ${family === m.name ? m.color : 'transparent'}`,
+                backgroundColor: families.includes(m.name) ? m.color : '#f0f0f0',
+                color: families.includes(m.name) ? '#fff' : '#666',
+                border: `2px solid ${families.includes(m.name) ? m.color : 'transparent'}`,
                 padding: '0.6rem 1rem',
                 borderRadius: '2rem',
                 cursor: 'pointer',
@@ -470,7 +497,13 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}
-              onClick={() => setFamily(m.name)}
+              onClick={() => {
+                if (families.includes(m.name)) {
+                  setFamilies(families.filter(f => f !== m.name));
+                } else {
+                  setFamilies([...families, m.name]);
+                }
+              }}
             >
               {m.icon} {m.name}
             </button>
