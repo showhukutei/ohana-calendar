@@ -14,12 +14,7 @@ const INITIAL_FAMILY_MEMBERS = [
   { id: 'akira', name: '晃', color: '#9575cd', icon: '👦' },
 ];
 
-const INITIAL_EVENTS = [
-  { id: 1, date: new Date(2026, 3, 10).toISOString(), title: '春の運動会', color: '#81c784', family: '幸', type: '学校行事' },
-  { id: 2, date: new Date(2026, 3, 15).toISOString(), title: '進路面談', color: '#f06292', family: 'ママ', type: '面談' },
-  { id: 3, date: new Date(2026, 3, 22).toISOString(), title: 'ピアノコンクール', color: '#ffb74d', family: '希', type: '習い事' },
-  { id: 4, date: new Date(2026, 3, 5).toISOString(), title: '家族会議', color: '#ff8a80', family: '全員', type: '家庭' },
-];
+const INITIAL_EVENTS = [];
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -201,21 +196,25 @@ function App() {
               >
                  <span className="day-number">{format(day, 'd')}</span>
                  <div className="day-events">
-                   {filteredEvents.filter(e => isSameDay(e.date, day)).map(e => (
-                     <motion.div 
-                       layoutId={`event-${e.id}`}
-                       whileHover={{ x: 3 }}
-                       key={e.id} 
-                       className="event-pill" 
-                       style={{ backgroundColor: e.color }}
-                       onClick={(ev) => {
-                          ev.stopPropagation();
-                          setShowEventDetail(e);
-                       }}
-                     >
-                       <span className="pill-title">{e.title}</span>
-                     </motion.div>
-                   ))}
+                   {filteredEvents.filter(e => isSameDay(e.date, day)).map(e => {
+                     const member = familyMembers.find(m => m.name === e.family) || familyMembers[0];
+                     return (
+                       <motion.div 
+                         layoutId={`event-${e.id}`}
+                         whileHover={{ x: 3 }}
+                         key={e.id} 
+                         className="event-pill" 
+                         style={{ backgroundColor: e.color }}
+                         onClick={(ev) => {
+                            ev.stopPropagation();
+                            setShowEventDetail(e);
+                         }}
+                       >
+                         {member && member.icon && <span style={{marginRight: '4px'}}>{member.icon}</span>}
+                         <span className="pill-title">{e.title}</span>
+                       </motion.div>
+                     );
+                   })}
                  </div>
               </motion.div>
             ))}
@@ -271,26 +270,15 @@ function App() {
         {/* Add Event Modal */}
         {showAddModal && (
           <Modal onClose={() => setShowAddModal(false)}>
-            <div className="add-event-form">
-              <h3>予定の追加</h3>
-              <div className="input-group">
-                <label>日付</label>
-                <input type="date" defaultValue={format(showAddModal, 'yyyy-MM-dd')} />
-              </div>
-              <div className="input-group">
-                <label>タイトル</label>
-                <input type="text" placeholder="例：ピアノの練習" />
-              </div>
-              <div className="input-group">
-                <label>誰の予定？</label>
-                <div className="member-selector">
-                  {familyMembers.filter(m => m.name !== '全員').map(m => (
-                    <button key={m.id || m.name} style={{ backgroundColor: m.color }}>{m.icon} {m.name}</button>
-                  ))}
-                </div>
-              </div>
-              <button className="submit-btn" onClick={() => setShowAddModal(false)}>保存する</button>
-            </div>
+            <AddEventForm 
+              initialDate={showAddModal} 
+              familyMembers={familyMembers}
+              onCancel={() => setShowAddModal(false)}
+              onSave={(newEvent) => {
+                setEvents([...events, newEvent]);
+                setShowAddModal(false);
+              }}
+            />
           </Modal>
         )}
 
@@ -426,3 +414,70 @@ function Modal({ children, onClose }) {
 }
 
 export default App;
+
+function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState(() => {
+    try {
+      return format(initialDate instanceof Date ? initialDate : new Date(), 'yyyy-MM-dd');
+    } catch(e) {
+      return format(new Date(), 'yyyy-MM-dd');
+    }
+  });
+  const [family, setFamily] = useState('全員');
+
+  const handleSubmit = () => {
+    if (!title) return;
+    const member = familyMembers.find(m => m.name === family) || familyMembers[0];
+    onSave({
+      id: Date.now(),
+      date: new Date(date),
+      title: title,
+      color: member.color,
+      family: member.name,
+      type: '手動追加'
+    });
+  };
+
+  return (
+    <div className="add-event-form">
+      <h3>予定の追加</h3>
+      <div className="input-group">
+        <label>日付</label>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>タイトル</label>
+        <input type="text" placeholder="例：ピアノの練習" value={title} onChange={e => setTitle(e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>誰の予定？</label>
+        <div className="member-selector">
+          {familyMembers.filter(m => m.name !== '全員').map(m => (
+            <button 
+              key={m.id || m.name} 
+              className={`member-btn ${family === m.name ? 'active' : ''}`}
+              style={{
+                backgroundColor: family === m.name ? m.color : '#f0f0f0',
+                color: family === m.name ? '#fff' : '#666',
+                border: `2px solid ${family === m.name ? m.color : 'transparent'}`,
+                padding: '0.6rem 1rem',
+                borderRadius: '2rem',
+                cursor: 'pointer',
+                fontWeight: '700',
+                transition: '0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              onClick={() => setFamily(m.name)}
+            >
+              {m.icon} {m.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <button className="submit-btn" onClick={handleSubmit}>保存する</button>
+    </div>
+  );
+}
