@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Plus, FileText, Settings, Users, ChevronLeft, ChevronRight, Camera, Bell, X, Check, Trash2, Edit3, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, parseISO, addDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import './App.css';
 
-const FAMILY_MEMBERS = [
-  { name: '全員', color: '#7d7d7d' },
-  { name: 'パパ', color: '#4fc3f7' },
-  { name: 'ママ', color: '#f06292' },
-  { name: '幸', color: '#81c784' },
-  { name: '希', color: '#ffb74d' },
-  { name: '晃', color: '#9575cd' },
+const INITIAL_FAMILY_MEMBERS = [
+  { id: 'all', name: '全員', color: '#7d7d7d', icon: '🏠' },
+  { id: 'papa', name: 'パパ', color: '#4fc3f7', icon: '👨' },
+  { id: 'mama', name: 'ママ', color: '#f06292', icon: '👩' },
+  { id: 'yuki', name: '幸', color: '#81c784', icon: '👧' },
+  { id: 'nozomi', name: '希', color: '#ffb74d', icon: '👧' },
+  { id: 'akira', name: '晃', color: '#9575cd', icon: '👦' },
+];
+
+const INITIAL_EVENTS = [
+  { id: 1, date: new Date(2026, 3, 10).toISOString(), title: '春の運動会', color: '#81c784', family: '幸', type: '学校行事' },
+  { id: 2, date: new Date(2026, 3, 15).toISOString(), title: '進路面談', color: '#f06292', family: 'ママ', type: '面談' },
+  { id: 3, date: new Date(2026, 3, 22).toISOString(), title: 'ピアノコンクール', color: '#ffb74d', family: '希', type: '習い事' },
+  { id: 4, date: new Date(2026, 3, 5).toISOString(), title: '家族会議', color: '#ff8a80', family: '全員', type: '家庭' },
 ];
 
 function App() {
@@ -19,21 +26,39 @@ function App() {
   const [selectedMember, setSelectedMember] = useState('全員');
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showEventDetail, setShowEventDetail] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   
-  const [events, setEvents] = useState([
-    { id: 1, date: new Date(2026, 3, 10), title: '春の運動会', color: '#81c784', family: '幸', type: '学校行事' },
-    { id: 2, date: new Date(2026, 3, 15), title: '進路面談', color: '#f06292', family: 'ママ', type: '面談' },
-    { id: 3, date: new Date(2026, 3, 22), title: 'ピアノコンクール', color: '#ffb74d', family: '希', type: '習い事' },
-    { id: 4, date: new Date(2026, 3, 5), title: '家族会議', color: '#ff8a80', family: '全員', type: '家庭' },
-  ]);
+  const [familyMembers, setFamilyMembers] = useState(() => {
+    const saved = localStorage.getItem('ohana-family');
+    return saved ? JSON.parse(saved) : INITIAL_FAMILY_MEMBERS;
+  });
+
+  const [events, setEvents] = useState(() => {
+    const saved = localStorage.getItem('ohana-events');
+    if (saved) {
+      return JSON.parse(saved).map(e => ({ ...e, date: new Date(e.date) }));
+    }
+    return INITIAL_EVENTS.map(e => ({ ...e, date: new Date(e.date) }));
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ohana-family', JSON.stringify(familyMembers));
+  }, [familyMembers]);
+
+  useEffect(() => {
+    localStorage.setItem('ohana-events', JSON.stringify(events));
+  }, [events]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  const today = new Date();
+  const next7Days = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
@@ -72,9 +97,9 @@ function App() {
         </div>
         
         <div className="family-filter">
-          {FAMILY_MEMBERS.map(m => (
+          {familyMembers.map(m => (
             <button 
-              key={m.name} 
+              key={m.id || m.name} 
               className={`filter-btn ${selectedMember === m.name ? 'active' : ''}`}
               onClick={() => setSelectedMember(m.name)}
               style={{ '--member-color': m.color }}
@@ -86,27 +111,48 @@ function App() {
 
         <div className="header-right">
           <div className="user-avatars">
-             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=papa" alt="papa" className="avatar-small" />
-             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=mama" alt="mama" className="avatar-small" />
+            {familyMembers.filter(m => m.name !== '全員').slice(0, 4).map(m => (
+              <div key={m.id || m.name} className="avatar-small emoji-avatar" style={{ backgroundColor: m.color }}>
+                {m.icon}
+              </div>
+            ))}
+            {familyMembers.filter(m => m.name !== '全員').length > 4 && (
+              <div className="avatar-small emoji-avatar extra-avatar">+</div>
+            )}
           </div>
-          <button className="icon-btn"><Settings size={22} /></button>
+          <button className="icon-btn" onClick={() => setShowSettingsModal(true)}><Settings size={22} /></button>
         </div>
       </header>
 
       <main className="main-layout">
         <aside className="sidebar">
           <section className="upcoming-events glass-card">
-            <h3>今後の予定</h3>
-            <div className="upcoming-list">
-              {events.filter(e => e.date >= new Date()).slice(0, 4).map(e => (
-                <div key={e.id} className="upcoming-card">
-                   <div className="card-color" style={{ backgroundColor: e.color }}></div>
-                   <div className="card-info">
-                     <span className="card-date">{format(e.date, 'MM/dd')}</span>
-                     <span className="card-title">{e.title}</span>
-                   </div>
-                </div>
-              ))}
+            <h3>予定カレンダー (1週間)</h3>
+            <div className="weekly-calendar">
+              {next7Days.map(day => {
+                const dayEvents = events.filter(e => isSameDay(e.date, day));
+                return (
+                  <div key={day.toString()} className={`weekly-day ${isSameDay(day, today) ? 'today-row' : ''}`}>
+                    <div className="weekly-date">
+                      <span className="w-day">{format(day, 'MM/dd')}</span>
+                      <span className="w-weekday">{format(day, 'E', { locale: ja })}</span>
+                    </div>
+                    <div className="weekly-events">
+                      {dayEvents.length > 0 ? dayEvents.map(e => {
+                         const member = familyMembers.find(m => m.name === e.family) || familyMembers[0];
+                         return (
+                           <div key={e.id} className="weekly-event-item" style={{ borderLeftColor: e.color }} onClick={() => setShowEventDetail(e)}>
+                             <span className="we-icon">{member?.icon || '📅'}</span>
+                             <span className="we-title">{e.title}</span>
+                           </div>
+                         );
+                      }) : (
+                        <div className="no-events">予定なし</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
           
@@ -226,8 +272,8 @@ function App() {
               <div className="input-group">
                 <label>誰の予定？</label>
                 <div className="member-selector">
-                  {FAMILY_MEMBERS.filter(m => m.name !== '全員').map(m => (
-                    <button key={m.name} style={{ backgroundColor: m.color }}>{m.name}</button>
+                  {familyMembers.filter(m => m.name !== '全員').map(m => (
+                    <button key={m.id || m.name} style={{ backgroundColor: m.color }}>{m.icon} {m.name}</button>
                   ))}
                 </div>
               </div>
@@ -265,6 +311,65 @@ function App() {
                 }}><Trash2 size={18} /> 削除</button>
                 <button className="close-btn" onClick={() => setShowEventDetail(null)}>閉じる</button>
               </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Settings Modal */}
+        {showSettingsModal && (
+          <Modal onClose={() => setShowSettingsModal(false)}>
+            <div className="settings-form">
+              <h3><Settings size={22}/> 家族設定</h3>
+              <div className="settings-members">
+                {familyMembers.map(m => (
+                  <div key={m.id} className="settings-member-row">
+                     <div className="settings-member-preview" style={{ backgroundColor: m.color }}>{m.icon}</div>
+                     <input 
+                       className="icon-input"
+                       type="text" 
+                       maxLength="2"
+                       value={m.icon} 
+                       onChange={(e) => {
+                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, icon: e.target.value } : fm);
+                         setFamilyMembers(newMembers);
+                       }} 
+                     />
+                     <input 
+                       type="text" 
+                       className="name-input"
+                       value={m.name} 
+                       onChange={(e) => {
+                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, name: e.target.value } : fm);
+                         setFamilyMembers(newMembers);
+                       }} 
+                     />
+                     <input 
+                       type="color" 
+                       className="color-input"
+                       value={m.color} 
+                       onChange={(e) => {
+                         const newMembers = familyMembers.map(fm => fm.id === m.id ? { ...fm, color: e.target.value } : fm);
+                         setFamilyMembers(newMembers);
+                       }} 
+                     />
+                     {m.id !== 'all' && (
+                       <button className="del-btn" onClick={() => setFamilyMembers(familyMembers.filter(fm => fm.id !== m.id))}>
+                         <Trash2 size={18}/>
+                       </button>
+                     )}
+                  </div>
+                ))}
+              </div>
+              <button 
+                className="add-member-btn" 
+                onClick={() => {
+                  const newId = `member_${Date.now()}`;
+                  setFamilyMembers([...familyMembers, { id: newId, name: '新規', color: '#dddddd', icon: '❓' }]);
+                }}
+              >
+                <Plus size={18}/> メンバー追加
+              </button>
+              <button className="submit-btn" onClick={() => setShowSettingsModal(false)}>完了</button>
             </div>
           </Modal>
         )}
