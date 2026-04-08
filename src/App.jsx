@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from './supabase';
 import { Calendar as CalendarIcon, Plus, FileText, Settings, Users, ChevronLeft, ChevronRight, Camera, Bell, X, Check, Trash2, Edit3, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, parseISO, addDays } from 'date-fns';
@@ -65,6 +66,92 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ohana-events', JSON.stringify(events));
   }, [events]);
+
+  const prevEvents = useRef(JSON.stringify(events));
+  const prevFamily = useRef(JSON.stringify(familyMembers));
+  const prevMemo = useRef(familyMemo);
+
+  useEffect(() => {
+    if (!supabase) return;
+    
+    let isMounted = true;
+    
+    const parseAndSet = (data) => {
+      if (!isMounted) return;
+      if (data.family && data.family !== prevFamily.current) {
+        prevFamily.current = data.family;
+        setFamilyMembers(JSON.parse(data.family));
+      }
+      if (data.events && data.events !== prevEvents.current) {
+        prevEvents.current = data.events;
+        const parsed = JSON.parse(data.events);
+        setEvents(parsed.map(e => ({...e, date: new Date(e.date)})));
+      }
+      if (data.memo && data.memo !== prevMemo.current) {
+        prevMemo.current = data.memo;
+        setFamilyMemo(data.memo);
+      }
+    };
+
+    const fetchInitial = async () => {
+      try {
+        const { data, error } = await supabase.from('calendar_state').select('*').eq('id', 1).single();
+        if (data) parseAndSet(data);
+      } catch (err) {
+        console.error('Supabase fetch error:', err);
+      }
+    };
+    fetchInitial();
+
+    const channel = supabase.channel('calendar_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_state', filter: 'id=eq.1' }, (payload) => {
+        if (payload.new) parseAndSet(payload.new);
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    
+    const syncToDb = async () => {
+      const currentEventsStr = JSON.stringify(events);
+      const currentFamilyStr = JSON.stringify(familyMembers);
+      
+      let needsUpdate = false;
+      if (prevEvents.current !== currentEventsStr) {
+        prevEvents.current = currentEventsStr;
+        needsUpdate = true;
+      }
+      if (prevFamily.current !== currentFamilyStr) {
+        prevFamily.current = currentFamilyStr;
+        needsUpdate = true;
+      }
+      if (prevMemo.current !== familyMemo) {
+        prevMemo.current = familyMemo;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        try {
+          await supabase.from('calendar_state').upsert({
+            id: 1,
+            events: currentEventsStr,
+            family: currentFamilyStr,
+            memo: familyMemo
+          });
+        } catch (err) {
+          console.error("Supabase upsert error:", err);
+        }
+      }
+    };
+    const to = setTimeout(syncToDb, 1000);
+    return () => clearTimeout(to);
+  }, [events, familyMembers, familyMemo]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
