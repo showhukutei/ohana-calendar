@@ -148,7 +148,12 @@ function App() {
             <h3>予定カレンダー (1週間)</h3>
             <div className="weekly-calendar">
               {next7Days.map(day => {
-                const dayEvents = events.filter(e => isSameDay(e.date, day));
+                const dayEvents = events.filter(e => isSameDay(e.date, day)).sort((a, b) => {
+                  if (!a.time && !b.time) return 0;
+                  if (!a.time) return -1;
+                  if (!b.time) return 1;
+                  return a.time.localeCompare(b.time);
+                });
                 return (
                   <div key={day.toString()} className={`weekly-day ${isSameDay(day, today) ? 'today-row' : ''}`}>
                     <div className="weekly-date">
@@ -165,6 +170,7 @@ function App() {
                              <span className="we-icon">
                                {members.length > 0 ? members.map((m, idx) => <span key={idx}>{m.icon}</span>) : '📅'}
                              </span>
+                             {e.time && <span className="we-time">{e.time}</span>}
                              <span className="we-title">{e.title}</span>
                            </div>
                          );
@@ -211,7 +217,12 @@ function App() {
               >
                  <span className="day-number">{format(day, 'd')}</span>
                  <div className="day-events">
-                   {filteredEvents.filter(e => isSameDay(e.date, day)).map(e => {
+                   {filteredEvents.filter(e => isSameDay(e.date, day)).sort((a, b) => {
+                     if (!a.time && !b.time) return 0;
+                     if (!a.time) return -1;
+                     if (!b.time) return 1;
+                     return a.time.localeCompare(b.time);
+                   }).map(e => {
                      const eventFamilies = Array.isArray(e.family) ? e.family : [e.family];
                      const members = eventFamilies.map(fname => familyMembers.find(m => m.name === fname)).filter(Boolean);
                      const primaryColor = members.length > 0 ? members[0].color : e.color;
@@ -228,6 +239,7 @@ function App() {
                          }}
                        >
                          {members.length > 0 && <span style={{marginRight: '4px'}}>{members.map((m, idx) => <span key={idx}>{m.icon}</span>)}</span>}
+                         {e.time && <span className="pill-time">{e.time}</span>}
                          <span className="pill-title">{e.title}</span>
                        </motion.div>
                      );
@@ -314,7 +326,7 @@ function App() {
                 </div>
                 <div className="detail-item">
                   <span className="label">日付</span>
-                  <span className="value">{format(showEventDetail.date, 'yyyy年 MM月 dd日')}</span>
+                  <span className="value">{format(showEventDetail.date, 'yyyy年 MM月 dd日')} {showEventDetail.time ? showEventDetail.time : ''}</span>
                 </div>
                 <div className="detail-item">
                    <span className="label">担当</span>
@@ -450,6 +462,7 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
       return format(new Date(), 'yyyy-MM-dd');
     }
   });
+  const [time, setTime] = useState('');
   const [families, setFamilies] = useState([]);
 
   const handleSubmit = () => {
@@ -459,6 +472,7 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
     onSave({
       id: Date.now(),
       date: new Date(date),
+      time: time,
       title: title,
       color: member.color,
       family: selectedFamilies,
@@ -470,8 +484,11 @@ function AddEventForm({ initialDate, familyMembers, onSave, onCancel }) {
     <div className="add-event-form">
       <h3>予定の追加</h3>
       <div className="input-group">
-        <label>日付</label>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        <label>日付・時間</label>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input type="date" style={{ flex: 1 }} value={date} onChange={e => setDate(e.target.value)} />
+          <input type="time" style={{ width: '120px' }} value={time} onChange={e => setTime(e.target.value)} />
+        </div>
       </div>
       <div className="input-group">
         <label>タイトル</label>

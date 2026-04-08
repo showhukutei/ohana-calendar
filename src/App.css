@@ -327,6 +327,28 @@ body {
   white-space: nowrap;
 }
 
+.pill-time {
+  display: inline-block;
+  margin-right: 5px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.we-time {
+  display: inline-block;
+  margin-right: 6px;
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: #f0f0f0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.4rem;
+}
+
 /* Settings Form */
 .settings-form {
   display: flex;
