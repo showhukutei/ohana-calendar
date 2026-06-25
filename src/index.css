@@ -1,63 +1,104 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
 :root {
-  --primary: #ff8a80;
-  --primary-light: #ffbcaf;
-  --secondary: #81d4fa;
-  --accent: #ffcc80;
-  --bg-gradient: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --text-main: #4a4a4a;
-  --text-dim: #7d7d7d;
-  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  --radius: 16px;
+  --color-bg: #FAF6F0; /* 目に優しいクリームベージュ */
+  --color-text: #2F3330; /* 真っ黒ではないダークグレー */
+  --color-text-light: #6A706C;
+  --color-text-muted: #A3A8A5;
+  
+  /* 押しやすく親しみやすいパステルカラー（彩度を少し抑え目） */
+  --color-green: #6DA698;
+  --color-green-hover: #598F82;
+  --color-terracotta: #DDA084;
+  --color-terracotta-hover: #C6896E;
+  --color-yellow: #E8C274;
+  --color-blue: #6FA2BF;
+  --color-blue-hover: #5A8CA7;
+  --color-purple: #9A8BB8;
+  
+  --color-card-bg: #FFFFFF;
+  --glass-bg: rgba(250, 246, 240, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  
+  --shadow-sm: 0 4px 12px rgba(47, 51, 48, 0.03);
+  --shadow-md: 0 10px 25px rgba(47, 51, 48, 0.06);
+  --shadow-lg: 0 20px 40px rgba(47, 51, 48, 0.1);
+  --shadow-button: 0 6px 0px #CBD0CD; /* 3D立体ボタンエフェクト用 */
+  --shadow-button-active: 0 2px 0px #CBD0CD;
+  
+  --radius-sm: 10px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent; /* モバイルの青い枠を消す */
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
-  background: var(--bg-gradient);
-  background-attachment: fixed;
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
-  color: var(--text-main);
   overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-.glass-card {
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow);
-  border-radius: var(--radius);
+button {
+  font-family: inherit;
+  outline: none;
 }
 
-.btn-primary {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 138, 128, 0.3);
+/* スクロールバーのカスタマイズ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 138, 128, 0.4);
-  filter: brightness(1.05);
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #E3E7E4;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0 24px;
+}
+
+/* 自閉症のお子様に向けた、はっきりと押しやすい「立体的な3Dボタン」スタイル */
+.btn-3d {
+  background-color: var(--color-card-bg);
+  border: 2px solid #D5DAD7;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  padding: 12px 24px;
+  position: relative;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: var(--shadow-button);
+  transform: translateY(-4px);
+}
+
+.btn-3d:hover {
+  background-color: #FAFBFB;
+}
+
+.btn-3d:active {
+  transform: translateY(0px);
+  box-shadow: var(--shadow-button-active);
 }
